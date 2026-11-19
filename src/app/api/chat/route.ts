@@ -192,6 +192,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error: unknown) {
+    console.error('[API Chat Error]:', error);
     const rawError = error instanceof Error ? error.message : 'Internal generation error';
     // Clean out any sensitive token patterns just in case
     const safeError = rawError

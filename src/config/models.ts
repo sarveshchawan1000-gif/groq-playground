@@ -64,8 +64,8 @@ export const MODEL_REGISTRY: ModelConfig[] = [
     name: 'Fast Model (Low Latency)',
     category: 'fast',
     provider: (process.env.MODEL_FAST_PROVIDER as ProviderType) || 'groq',
-    // PLACEHOLDER: Replace with your fast model ID (e.g. llama-3.1-8b-instant)
-    providerModelId: process.env.MODEL_FAST_ID || 'llama-3.1-8b-instant',
+    // Fast model ID (e.g. openai/gpt-oss-20b or llama-3.1-8b-instant)
+    providerModelId: process.env.MODEL_FAST_ID || 'openai/gpt-oss-20b',
     description: 'Engineered for near-instant responses, ultra-low TTFT, and high throughput.',
     contextLimit: process.env.MODEL_FAST_CONTEXT ? parseInt(process.env.MODEL_FAST_CONTEXT) : 131072,
     maxOutputTokensDefault: 2048,
@@ -95,8 +95,8 @@ export const MODEL_REGISTRY: ModelConfig[] = [
     name: 'Reasoning Model (Deep Logic)',
     category: 'reasoning',
     provider: (process.env.MODEL_REASONING_PROVIDER as ProviderType) || 'groq',
-    // PLACEHOLDER: Replace with your reasoning/coding model ID (e.g. llama-3.3-70b-versatile or o1)
-    providerModelId: process.env.MODEL_REASONING_ID || 'llama-3.3-70b-versatile',
+    // Reasoning model ID (e.g. openai/gpt-oss-120b or llama-3.3-70b-versatile)
+    providerModelId: process.env.MODEL_REASONING_ID || 'openai/gpt-oss-120b',
     description: 'Excels at complex mathematical reasoning, algorithm design, and detailed code synthesis.',
     contextLimit: process.env.MODEL_REASONING_CONTEXT ? parseInt(process.env.MODEL_REASONING_CONTEXT) : 131072,
     maxOutputTokensDefault: 4096,
@@ -126,8 +126,8 @@ export const MODEL_REGISTRY: ModelConfig[] = [
     name: 'Budget Model (High Efficiency)',
     category: 'budget',
     provider: (process.env.MODEL_BUDGET_PROVIDER as ProviderType) || 'groq',
-    // PLACEHOLDER: Replace with your budget model ID (e.g. gemma2-9b-it or gpt-4o-mini)
-    providerModelId: process.env.MODEL_BUDGET_ID || 'gemma2-9b-it',
+    // Budget model ID (e.g. qwen/qwen3.8-27b or gemma2-9b-it)
+    providerModelId: process.env.MODEL_BUDGET_ID || 'qwen/qwen3.8-27b',
     description: 'Cost-effective inference balanced for everyday conversational and transformation tasks.',
     contextLimit: process.env.MODEL_BUDGET_CONTEXT ? parseInt(process.env.MODEL_BUDGET_CONTEXT) : 8192,
     maxOutputTokensDefault: 2048,
@@ -157,8 +157,8 @@ export const MODEL_REGISTRY: ModelConfig[] = [
     name: 'Vision Model (Multimodal)',
     category: 'vision',
     provider: (process.env.MODEL_VISION_PROVIDER as ProviderType) || 'groq',
-    // PLACEHOLDER: Replace with your vision model ID (e.g. llama-3.2-11b-vision-preview or gpt-4o)
-    providerModelId: process.env.MODEL_VISION_ID || 'llama-3.2-11b-vision-preview',
+    // Vision / Multimodal model ID (e.g. openai/gpt-oss-120b or llama-3.2-11b-vision-preview)
+    providerModelId: process.env.MODEL_VISION_ID || 'openai/gpt-oss-120b',
     description: 'Multimodal model supporting OCR, image question-answering, and visual scene analysis.',
     contextLimit: process.env.MODEL_VISION_CONTEXT ? parseInt(process.env.MODEL_VISION_CONTEXT) : 131072,
     maxOutputTokensDefault: 2048,

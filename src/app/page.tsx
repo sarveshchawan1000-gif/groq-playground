@@ -37,7 +37,7 @@ const FALLBACK_MODELS: ClientModelInfo[] = [
     name: 'Fast Model (Low Latency)',
     category: 'fast',
     provider: 'groq',
-    providerModelId: 'llama-3.1-8b-instant',
+    providerModelId: 'openai/gpt-oss-20b',
     description: 'Engineered for near-instant responses, ultra-low TTFT, and high throughput.',
     contextLimit: 131072,
     maxOutputTokensDefault: 2048,
