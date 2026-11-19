@@ -97,10 +97,9 @@ cp .env.example .env.local
 
 Edit `.env.local` to configure your API keys and model choices:
 ```env
-# Add at least one provider key:
+# Add your provider keys:
 GROQ_API_KEY=your_groq_api_key_here
-# OPENAI_API_KEY=your_openai_api_key_here
-# ANTHROPIC_API_KEY=your_anthropic_api_key_here
+OPENAI_API_KEY=your_openai_api_key_here
 
 # (Optional) Override placeholder model IDs:
 MODEL_FAST_ID=llama-3.1-8b-instant
