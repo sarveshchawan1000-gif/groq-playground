@@ -1,6 +1,11 @@
+'use client';
+
 import React, { useState, useRef, useEffect } from 'react';
 import { ClientModelInfo } from '@/config/models';
-import { ChevronDown, Check, Zap, Brain, PiggyBank, Eye, AlertTriangle, ShieldCheck } from 'lucide-react';
+import {
+  ChevronDown, Check, Zap, Brain, PiggyBank, Eye,
+  AlertTriangle, ShieldCheck, Search
+} from 'lucide-react';
 
 interface ModelSelectorProps {
   models: ClientModelInfo[];
@@ -8,178 +13,290 @@ interface ModelSelectorProps {
   onSelectModel: (model: ClientModelInfo) => void;
 }
 
+const categoryMeta: Record<string, { icon: React.ReactNode; color: string; bg: string }> = {
+  fast: {
+    icon: <Zap style={{ width: 13, height: 13 }} />,
+    color: '#4f8ef7',
+    bg: 'rgba(79,142,247,0.12)',
+  },
+  reasoning: {
+    icon: <Brain style={{ width: 13, height: 13 }} />,
+    color: '#a78bfa',
+    bg: 'rgba(167,139,250,0.12)',
+  },
+  budget: {
+    icon: <PiggyBank style={{ width: 13, height: 13 }} />,
+    color: '#3ecf8e',
+    bg: 'rgba(62,207,142,0.12)',
+  },
+  vision: {
+    icon: <Eye style={{ width: 13, height: 13 }} />,
+    color: '#f59e0b',
+    bg: 'rgba(245,158,11,0.12)',
+  },
+};
+
 export const ModelSelector: React.FC<ModelSelectorProps> = ({
   models,
   selectedModel,
   onSelectModel,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setIsOpen(false);
+        setSearch('');
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'fast':
-        return <Zap className="w-4 h-4 text-cyan-400" aria-hidden="true" />;
-      case 'reasoning':
-        return <Brain className="w-4 h-4 text-purple-400" aria-hidden="true" />;
-      case 'budget':
-        return <PiggyBank className="w-4 h-4 text-emerald-400" aria-hidden="true" />;
-      case 'vision':
-        return <Eye className="w-4 h-4 text-amber-400" aria-hidden="true" />;
-      default:
-        return <Zap className="w-4 h-4 text-zinc-400" aria-hidden="true" />;
+  useEffect(() => {
+    if (isOpen && searchRef.current) {
+      setTimeout(() => searchRef.current?.focus(), 50);
     }
-  };
+  }, [isOpen]);
+
+  const filtered = models.filter(
+    (m) =>
+      m.name.toLowerCase().includes(search.toLowerCase()) ||
+      m.providerModelId.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const meta = categoryMeta[selectedModel.category] || categoryMeta.fast;
 
   return (
-    <div className="relative" ref={containerRef}>
-      <label htmlFor="model-select-button" className="sr-only">
-        Choose AI Model
-      </label>
+    <div ref={containerRef} style={{ position: 'relative' }}>
       <button
-        id="model-select-button"
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => setIsOpen((v) => !v)}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
-        className="flex items-center justify-between w-full sm:w-auto min-w-[280px] px-3.5 py-2.5 bg-surface-100 hover:bg-surface-200 border border-surface-border rounded-xl transition-all focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:outline-none shadow-sm"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          padding: '8px 12px',
+          background: 'rgba(255,255,255,0.04)',
+          border: '1px solid rgba(255,255,255,0.09)',
+          borderRadius: 10,
+          cursor: 'pointer',
+          transition: 'all 0.15s',
+          minWidth: 240,
+          width: '100%',
+        }}
       >
-        <div className="flex items-center gap-2.5 text-left">
-          <div className="p-1.5 rounded-lg bg-surface-200 border border-surface-border">
-            {getCategoryIcon(selectedModel.category)}
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-sm text-zinc-100">
-                {selectedModel.name}
-              </span>
-              <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-surface-200 text-zinc-400 border border-surface-border">
-                {selectedModel.provider}
-              </span>
-            </div>
-            <div className="text-xs text-zinc-400 font-mono flex items-center gap-1.5">
-              <span>{selectedModel.providerModelId}</span>
-              {!selectedModel.isConfigured && (
-                <span className="text-rose-400 flex items-center gap-0.5">
-                  • <AlertTriangle className="w-3 h-3 inline" /> Unconfigured
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
+        {/* Category icon */}
+        <span style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 28,
+          height: 28,
+          borderRadius: 7,
+          background: meta.bg,
+          color: meta.color,
+          flexShrink: 0,
+        }}>
+          {meta.icon}
+        </span>
+
+        <span style={{ flex: 1, textAlign: 'left', minWidth: 0 }}>
+          <span style={{
+            display: 'block',
+            fontSize: 13,
+            fontWeight: 600,
+            color: '#f0f0f4',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}>
+            {selectedModel.name}
+          </span>
+          <span style={{
+            display: 'block',
+            fontSize: 11,
+            color: '#9898a8',
+            fontFamily: 'monospace',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}>
+            {selectedModel.providerModelId}
+          </span>
+        </span>
+
         <ChevronDown
-          className={`w-4 h-4 text-zinc-400 ml-3 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-          aria-hidden="true"
+          style={{
+            width: 14,
+            height: 14,
+            color: '#606070',
+            flexShrink: 0,
+            transform: isOpen ? 'rotate(180deg)' : 'rotate(0)',
+            transition: 'transform 0.2s',
+          }}
         />
       </button>
 
-      {/* Dropdown Menu */}
       {isOpen && (
         <div
           role="listbox"
-          aria-label="Available AI Models"
-          className="absolute left-0 top-full mt-2 w-full sm:w-[420px] max-h-[480px] overflow-y-auto bg-surface-50 border border-surface-border rounded-xl shadow-2xl p-1.5 z-50 divide-y divide-surface-border/50"
+          aria-label="Select AI Model"
+          style={{
+            position: 'absolute',
+            top: 'calc(100% + 6px)',
+            left: 0,
+            width: '100%',
+            minWidth: 320,
+            maxWidth: 440,
+            maxHeight: 420,
+            overflowY: 'auto',
+            background: '#16161f',
+            border: '1px solid rgba(255,255,255,0.10)',
+            borderRadius: 12,
+            boxShadow: '0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05)',
+            zIndex: 100,
+            padding: '6px',
+          }}
         >
-          <div className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
-            Select Active Model Slot
+          {/* Search */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '7px 10px',
+            margin: '0 0 4px 0',
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 8,
+          }}>
+            <Search style={{ width: 13, height: 13, color: '#606070', flexShrink: 0 }} />
+            <input
+              ref={searchRef}
+              type="text"
+              placeholder="Search models…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{
+                flex: 1,
+                background: 'none',
+                border: 'none',
+                outline: 'none',
+                fontSize: 12,
+                color: '#f0f0f4',
+              }}
+            />
           </div>
 
-          <div className="space-y-1 py-1">
-            {models.map((model) => {
+          {/* Model list */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {filtered.map((model) => {
               const isSelected = model.id === selectedModel.id;
+              const m = categoryMeta[model.category] || categoryMeta.fast;
               return (
                 <div
                   key={model.id}
                   role="option"
                   aria-selected={isSelected}
-                  onClick={() => {
-                    onSelectModel(model);
-                    setIsOpen(false);
+                  onClick={() => { onSelectModel(model); setIsOpen(false); setSearch(''); }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 10,
+                    padding: '10px 10px',
+                    borderRadius: 8,
+                    cursor: 'pointer',
+                    background: isSelected ? 'rgba(79,142,247,0.08)' : 'transparent',
+                    border: `1px solid ${isSelected ? 'rgba(79,142,247,0.2)' : 'transparent'}`,
+                    transition: 'all 0.12s',
                   }}
-                  className={`flex flex-col gap-1.5 p-3 rounded-lg cursor-pointer transition-colors ${
-                    isSelected
-                      ? 'bg-surface-200/90 border border-cyan-500/40 text-zinc-100'
-                      : 'hover:bg-surface-100 text-zinc-300'
-                  }`}
+                  onMouseEnter={(e) => {
+                    if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.04)';
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'transparent';
+                  }}
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1 rounded bg-surface-200 border border-surface-border">
-                        {getCategoryIcon(model.category)}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-sm text-zinc-100">
-                            {model.name}
-                          </span>
-                          <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-surface-200 text-zinc-400 border border-surface-border">
-                            {model.provider}
-                          </span>
-                        </div>
-                        <div className="text-xs font-mono text-zinc-400">
-                          {model.providerModelId}
-                        </div>
-                      </div>
-                    </div>
+                  <span style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    width: 28, height: 28, borderRadius: 7,
+                    background: m.bg, color: m.color, flexShrink: 0, marginTop: 1,
+                  }}>
+                    {m.icon}
+                  </span>
 
-                    <div className="flex items-center gap-2">
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: '#f0f0f4' }}>
+                        {model.name}
+                      </span>
                       {model.isConfigured ? (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                          <ShieldCheck className="w-3 h-3" />
-                          Ready
+                        <span style={{
+                          fontSize: 10, color: '#3ecf8e', background: 'rgba(62,207,142,0.1)',
+                          border: '1px solid rgba(62,207,142,0.2)', borderRadius: 5,
+                          padding: '1px 6px', display: 'flex', alignItems: 'center', gap: 3,
+                        }}>
+                          <ShieldCheck style={{ width: 9, height: 9 }} /> Ready
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">
-                          <AlertTriangle className="w-3 h-3" />
-                          Setup required
+                        <span style={{
+                          fontSize: 10, color: '#f43f5e', background: 'rgba(244,63,94,0.08)',
+                          border: '1px solid rgba(244,63,94,0.2)', borderRadius: 5,
+                          padding: '1px 6px', display: 'flex', alignItems: 'center', gap: 3,
+                        }}>
+                          <AlertTriangle style={{ width: 9, height: 9 }} /> Setup
                         </span>
                       )}
-                      {isSelected && <Check className="w-4 h-4 text-cyan-400 ml-1" aria-hidden="true" />}
+                      {isSelected && <Check style={{ width: 12, height: 12, color: '#4f8ef7', marginLeft: 'auto' }} />}
                     </div>
-                  </div>
-
-                  <p className="text-xs text-zinc-400 leading-relaxed pl-8">
-                    {model.description}
-                  </p>
-
-                  {/* Setup hint if unconfigured */}
-                  {!model.isConfigured && (
-                    <div className="mt-1 pl-8 text-[11px] text-rose-300/90 bg-rose-950/30 p-2 rounded border border-rose-900/40">
-                      💡 <strong>Setup Hint:</strong> {model.setupHint}
+                    <div style={{ fontSize: 11, color: '#606070', fontFamily: 'monospace', marginBottom: 4 }}>
+                      {model.providerModelId}
                     </div>
-                  )}
-
-                  {/* Capabilities badges */}
-                  <div className="flex flex-wrap gap-1.5 pl-8 mt-1">
-                    {model.capabilities.supportsVision && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400">
-                        Multimodal Vision
-                      </span>
-                    )}
-                    {model.capabilities.supportsStreaming && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
-                        Real-time Stream
-                      </span>
-                    )}
-                    {model.contextLimit && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 border border-zinc-700 text-zinc-400">
-                        {(model.contextLimit / 1024).toFixed(0)}k Context
-                      </span>
-                    )}
+                    <div style={{ fontSize: 11, color: '#9898a8', lineHeight: 1.5 }}>
+                      {model.description}
+                    </div>
+                    {/* Capability tags */}
+                    <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>
+                      {model.contextLimit && (
+                        <span style={{
+                          fontSize: 10, color: '#606070', background: 'rgba(255,255,255,0.05)',
+                          border: '1px solid rgba(255,255,255,0.08)', borderRadius: 4, padding: '1px 5px',
+                        }}>
+                          {(model.contextLimit / 1024).toFixed(0)}k ctx
+                        </span>
+                      )}
+                      {model.capabilities.supportsStreaming && (
+                        <span style={{
+                          fontSize: 10, color: '#4f8ef7', background: 'rgba(79,142,247,0.08)',
+                          border: '1px solid rgba(79,142,247,0.15)', borderRadius: 4, padding: '1px 5px',
+                        }}>
+                          Streaming
+                        </span>
+                      )}
+                      {model.capabilities.supportsVision && (
+                        <span style={{
+                          fontSize: 10, color: '#f59e0b', background: 'rgba(245,158,11,0.08)',
+                          border: '1px solid rgba(245,158,11,0.15)', borderRadius: 4, padding: '1px 5px',
+                        }}>
+                          Vision
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
             })}
+            {filtered.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '16px 0', color: '#606070', fontSize: 12 }}>
+                No models match your search
+              </div>
+            )}
           </div>
         </div>
       )}
