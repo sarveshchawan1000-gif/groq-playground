@@ -64,9 +64,9 @@ function MetricsRow({ metrics, isStreaming }: { metrics: RequestMetrics | null; 
               {metrics.tokensPerSecond.toFixed(0)} tok/s
             </span>
           )}
-          {metrics.cost != null && (
+          {metrics.estimatedCost != null && (
             <span style={{ fontSize: 11, color: '#9898a8' }}>
-              ${metrics.cost.toFixed(6)}
+              ${metrics.estimatedCost.toFixed(6)}
             </span>
           )}
         </>
