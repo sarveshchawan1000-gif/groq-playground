@@ -3,7 +3,7 @@
 import React from 'react';
 import { GenerationSettings } from '@/lib/providers/types';
 import { ClientModelInfo } from '@/config/models';
-import { X, Info, Zap, Thermometer, Hash, SlidersHorizontal } from 'lucide-react';
+import { X, Info, Zap, SlidersHorizontal } from 'lucide-react';
 
 interface SettingsPanelProps {
   settings: GenerationSettings;
@@ -13,52 +13,12 @@ interface SettingsPanelProps {
   onClose: () => void;
 }
 
-function Slider({
-  id, label, hint, value, min, max, step, disabled, format, onChange,
-}: {
-  id: string; label: string; hint: string;
-  value: number; min: number; max: number; step: number;
-  disabled: boolean; format: (v: number) => string;
-  onChange: (v: number) => void;
-}) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <label htmlFor={id} style={{
-          fontSize: 12, fontWeight: 500, color: disabled ? '#606070' : '#9898a8',
-          display: 'flex', alignItems: 'center', gap: 5, cursor: 'default',
-        }}>
-          {label}
-          <span title={hint} style={{ cursor: 'help', color: '#606070' }}>
-            <Info style={{ width: 11, height: 11 }} />
-          </span>
-        </label>
-        <span style={{
-          fontSize: 12, fontWeight: 700, color: disabled ? '#606070' : '#4f8ef7',
-          fontFamily: 'monospace',
-        }}>
-          {format(value)}
-        </span>
-      </div>
-      <input
-        id={id}
-        type="range"
-        min={min} max={max} step={step}
-        value={value}
-        disabled={disabled}
-        onChange={(e) => onChange(parseFloat(e.target.value))}
-        style={{ width: '100%' }}
-      />
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#606070', fontFamily: 'monospace' }}>
-        <span>{format(min)}</span>
-        <span>{format(max)}</span>
-      </div>
-    </div>
-  );
-}
-
 export const SettingsPanel: React.FC<SettingsPanelProps> = ({
-  settings, onUpdateSettings, selectedModel, isOpen, onClose,
+  settings,
+  onUpdateSettings,
+  selectedModel,
+  isOpen,
+  onClose,
 }) => {
   if (!isOpen) return null;
   const { capabilities } = selectedModel;
@@ -67,194 +27,182 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
     <>
       {/* Mobile backdrop */}
       <div
-        style={{
-          position: 'fixed', inset: 0, zIndex: 40,
-          background: 'rgba(0,0,0,0.5)',
-          backdropFilter: 'blur(4px)',
-        }}
-        className="lg:hidden"
+        className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
         onClick={onClose}
         aria-hidden="true"
       />
 
+      {/* Settings drawer on mobile, stationary sidebar on desktop */}
       <aside
-        aria-label="Generation Settings"
-        style={{
-          position: 'fixed',
-          top: 0, right: 0, bottom: 0,
-          zIndex: 41,
-          width: 300,
-          background: '#111118',
-          borderLeft: '1px solid rgba(255,255,255,0.07)',
-          display: 'flex',
-          flexDirection: 'column',
-          overflowY: 'auto',
-          boxShadow: '-20px 0 60px rgba(0,0,0,0.3)',
-        }}
-        // Static on large screens
-        className="lg:static lg:shadow-none"
+        aria-label="Generation Parameters"
+        className="fixed lg:static inset-y-0 right-0 z-40 w-80 max-w-[85vw] border-l border-white/[0.08] bg-[#0f172a] p-5 space-y-6 overflow-y-auto flex flex-col h-full shadow-2xl lg:shadow-none flex-shrink-0"
       >
         {/* Header */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '14px 16px',
-          borderBottom: '1px solid rgba(255,255,255,0.07)',
-          position: 'sticky', top: 0,
-          background: '#111118',
-          zIndex: 2,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <SlidersHorizontal style={{ width: 14, height: 14, color: '#4f8ef7' }} />
-            <span style={{ fontSize: 13, fontWeight: 600, color: '#f0f0f4' }}>Settings</span>
+        <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
+          <div className="flex items-center gap-2">
+            <SlidersHorizontal className="w-4 h-4 text-sky-400" />
+            <h3 className="text-xs font-semibold text-white uppercase tracking-wider">
+              Parameters
+            </h3>
           </div>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close settings"
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              width: 26, height: 26, borderRadius: 6,
-              background: 'none', border: '1px solid rgba(255,255,255,0.07)',
-              color: '#606070', cursor: 'pointer',
-            }}
+            aria-label="Close parameters"
+            className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
           >
-            <X style={{ width: 13, height: 13 }} />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Content */}
-        <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {/* Model Spec Card */}
+        <div className="p-3.5 rounded-xl bg-slate-900 border border-white/[0.06] space-y-2.5 text-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-slate-400">Provider</span>
+            <span className="font-mono font-semibold uppercase text-slate-200">
+              {selectedModel.provider}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-slate-400">Model ID</span>
+            <span className="font-mono text-slate-200 truncate max-w-[160px]" title={selectedModel.providerModelId}>
+              {selectedModel.providerModelId}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-slate-400">Context Window</span>
+            <span className="font-mono text-slate-200">
+              {selectedModel.contextLimit ? `${(selectedModel.contextLimit / 1024).toFixed(0)}k tokens` : '—'}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-slate-400">Status</span>
+            <span
+              className={`font-semibold ${
+                selectedModel.isConfigured ? 'text-emerald-400' : 'text-rose-400'
+              }`}
+            >
+              {selectedModel.isConfigured
+                ? selectedModel.isMockFallback
+                  ? 'Demo Mode'
+                  : 'Active'
+                : 'Setup Needed'}
+            </span>
+          </div>
+        </div>
 
-          {/* Model info card */}
-          <div style={{
-            background: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(255,255,255,0.07)',
-            borderRadius: 10,
-            padding: '12px 14px',
-          }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#606070', letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 10 }}>
-              Model Info
-            </div>
-            {[
-              { label: 'Provider', value: selectedModel.provider.toUpperCase() },
-              { label: 'Model ID', value: selectedModel.providerModelId },
-              { label: 'Context', value: selectedModel.contextLimit ? `${(selectedModel.contextLimit / 1024).toFixed(0)}k tokens` : '—' },
-              { label: 'Status', value: selectedModel.isConfigured ? (selectedModel.isMockFallback ? 'Demo' : 'Live') : 'Setup needed', color: selectedModel.isConfigured ? (selectedModel.isMockFallback ? '#f59e0b' : '#3ecf8e') : '#f43f5e' },
-            ].map(({ label, value, color }) => (
-              <div key={label} style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                marginBottom: 7,
-              }}>
-                <span style={{ fontSize: 11, color: '#606070' }}>{label}</span>
-                <span style={{
-                  fontSize: 11, color: color || '#9898a8',
-                  fontFamily: 'monospace',
-                  maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  textAlign: 'right',
-                }}>
-                  {value}
+        {/* Sliders */}
+        <div className="space-y-6">
+          {/* Temperature */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <label htmlFor="temp-slider" className="font-medium text-slate-300 flex items-center gap-1.5">
+                <span>Temperature</span>
+                <span title="Controls randomness. Lower is more deterministic, higher is more creative.">
+                  <Info className="w-3 h-3 text-slate-500 cursor-help" />
                 </span>
-              </div>
-            ))}
+              </label>
+              <span className="font-mono text-sky-400 font-semibold">
+                {settings.temperature.toFixed(2)}
+              </span>
+            </div>
+            <input
+              id="temp-slider"
+              type="range"
+              min="0"
+              max="2"
+              step="0.05"
+              value={settings.temperature}
+              disabled={!capabilities.supportsTemperature}
+              onChange={(e) => onUpdateSettings({ temperature: parseFloat(e.target.value) })}
+              className="w-full"
+            />
+            <div className="flex justify-between text-[10px] text-slate-500 font-mono">
+              <span>0.0 (Precise)</span>
+              <span>1.0</span>
+              <span>2.0 (Creative)</span>
+            </div>
           </div>
 
-          {/* Divider */}
-          <div style={{ height: 1, background: 'rgba(255,255,255,0.05)' }} />
-
-          {/* Temperature */}
-          <Slider
-            id="temp"
-            label="Temperature"
-            hint="Controls randomness. Lower = precise, higher = creative."
-            value={settings.temperature}
-            min={0} max={2} step={0.05}
-            disabled={!capabilities.supportsTemperature}
-            format={(v) => v.toFixed(2)}
-            onChange={(v) => onUpdateSettings({ temperature: v })}
-          />
-
-          {/* Max tokens */}
-          <Slider
-            id="max-tokens"
-            label="Max Output Tokens"
-            hint="Maximum number of tokens to generate."
-            value={settings.maxTokens}
-            min={64} max={selectedModel.maxOutputTokensLimit || 4096} step={64}
-            disabled={!capabilities.supportsMaxTokens}
-            format={(v) => `${v}`}
-            onChange={(v) => onUpdateSettings({ maxTokens: Math.round(v) })}
-          />
+          {/* Max Tokens */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <label htmlFor="max-tokens-slider" className="font-medium text-slate-300 flex items-center gap-1.5">
+                <span>Max Output Tokens</span>
+                <span title="Upper limit on generated tokens.">
+                  <Info className="w-3 h-3 text-slate-500 cursor-help" />
+                </span>
+              </label>
+              <span className="font-mono text-sky-400 font-semibold">
+                {settings.maxTokens}
+              </span>
+            </div>
+            <input
+              id="max-tokens-slider"
+              type="range"
+              min="64"
+              max={selectedModel.maxOutputTokensLimit || 4096}
+              step="64"
+              value={settings.maxTokens}
+              disabled={!capabilities.supportsMaxTokens}
+              onChange={(e) => onUpdateSettings({ maxTokens: parseInt(e.target.value) })}
+              className="w-full"
+            />
+            <div className="flex justify-between text-[10px] text-slate-500 font-mono">
+              <span>64</span>
+              <span>{selectedModel.maxOutputTokensLimit || 4096}</span>
+            </div>
+          </div>
 
           {/* Top-P */}
-          <Slider
-            id="top-p"
-            label="Top-P"
-            hint="Nucleus sampling threshold. 1.0 = consider all tokens."
-            value={settings.topP}
-            min={0} max={1} step={0.05}
-            disabled={!capabilities.supportsTopP}
-            format={(v) => v.toFixed(2)}
-            onChange={(v) => onUpdateSettings({ topP: v })}
-          />
-
-          {/* Divider */}
-          <div style={{ height: 1, background: 'rgba(255,255,255,0.05)' }} />
-
-          {/* Stream toggle */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div>
-              <label
-                htmlFor="stream-toggle"
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  fontSize: 12, fontWeight: 500,
-                  color: capabilities.supportsStreaming ? '#9898a8' : '#606070',
-                  cursor: capabilities.supportsStreaming ? 'pointer' : 'default',
-                }}
-              >
-                <Zap style={{ width: 12, height: 12, color: '#4f8ef7' }} />
-                Stream Response
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <label htmlFor="top-p-slider" className="font-medium text-slate-300 flex items-center gap-1.5">
+                <span>Top-P</span>
+                <span title="Nucleus sampling threshold.">
+                  <Info className="w-3 h-3 text-slate-500 cursor-help" />
+                </span>
               </label>
-              <p style={{ fontSize: 11, color: '#606070', marginTop: 3 }}>
-                Show tokens as generated
-              </p>
+              <span className="font-mono text-sky-400 font-semibold">
+                {settings.topP.toFixed(2)}
+              </span>
             </div>
-            <label className="toggle-switch">
-              <input
-                id="stream-toggle"
-                type="checkbox"
-                checked={settings.stream}
-                disabled={!capabilities.supportsStreaming}
-                onChange={(e) => onUpdateSettings({ stream: e.target.checked })}
-              />
-              <span className="toggle-slider" />
-            </label>
+            <input
+              id="top-p-slider"
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value={settings.topP}
+              disabled={!capabilities.supportsTopP}
+              onChange={(e) => onUpdateSettings({ topP: parseFloat(e.target.value) })}
+              className="w-full"
+            />
+            <div className="flex justify-between text-[10px] text-slate-500 font-mono">
+              <span>0.0</span>
+              <span>1.0</span>
+            </div>
           </div>
 
-          {/* Keyboard shortcut hint */}
-          <div style={{
-            padding: '10px 12px',
-            background: 'rgba(255,255,255,0.02)',
-            border: '1px solid rgba(255,255,255,0.05)',
-            borderRadius: 8,
-          }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#606070', letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 8 }}>
-              Shortcuts
+          {/* Stream Toggle */}
+          <div className="pt-3 border-t border-white/[0.08] flex items-center justify-between">
+            <div className="space-y-0.5">
+              <label htmlFor="stream-toggle" className="text-xs font-medium text-slate-200 flex items-center gap-1.5 cursor-pointer">
+                <Zap className="w-3.5 h-3.5 text-sky-400" />
+                <span>Stream Response</span>
+              </label>
+              <p className="text-[11px] text-slate-400">
+                Receive tokens in real-time
+              </p>
             </div>
-            {[
-              ['⌘ + Enter', 'Send message'],
-              ['Esc', 'Stop generation'],
-            ].map(([key, desc]) => (
-              <div key={key} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                <span style={{ fontSize: 11, color: '#606070' }}>{desc}</span>
-                <code style={{
-                  fontSize: 10, color: '#9898a8',
-                  background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  borderRadius: 4, padding: '1px 5px',
-                }}>{key}</code>
-              </div>
-            ))}
+            <input
+              id="stream-toggle"
+              type="checkbox"
+              checked={settings.stream}
+              disabled={!capabilities.supportsStreaming}
+              onChange={(e) => onUpdateSettings({ stream: e.target.checked })}
+              className="w-4 h-4 rounded bg-slate-800 border-white/[0.2] text-sky-500 focus:ring-sky-400 cursor-pointer"
+            />
           </div>
         </div>
       </aside>

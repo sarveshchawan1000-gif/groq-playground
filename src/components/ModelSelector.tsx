@@ -13,29 +13,6 @@ interface ModelSelectorProps {
   onSelectModel: (model: ClientModelInfo) => void;
 }
 
-const categoryMeta: Record<string, { icon: React.ReactNode; color: string; bg: string }> = {
-  fast: {
-    icon: <Zap style={{ width: 13, height: 13 }} />,
-    color: '#4f8ef7',
-    bg: 'rgba(79,142,247,0.12)',
-  },
-  reasoning: {
-    icon: <Brain style={{ width: 13, height: 13 }} />,
-    color: '#a78bfa',
-    bg: 'rgba(167,139,250,0.12)',
-  },
-  budget: {
-    icon: <PiggyBank style={{ width: 13, height: 13 }} />,
-    color: '#3ecf8e',
-    bg: 'rgba(62,207,142,0.12)',
-  },
-  vision: {
-    icon: <Eye style={{ width: 13, height: 13 }} />,
-    color: '#f59e0b',
-    bg: 'rgba(245,158,11,0.12)',
-  },
-};
-
 export const ModelSelector: React.FC<ModelSelectorProps> = ({
   models,
   selectedModel,
@@ -44,7 +21,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
-  const searchRef = useRef<HTMLInputElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -58,243 +35,151 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
   }, []);
 
   useEffect(() => {
-    if (isOpen && searchRef.current) {
-      setTimeout(() => searchRef.current?.focus(), 50);
+    if (isOpen) {
+      setTimeout(() => searchInputRef.current?.focus(), 60);
     }
   }, [isOpen]);
 
   const filtered = models.filter(
     (m) =>
       m.name.toLowerCase().includes(search.toLowerCase()) ||
-      m.providerModelId.toLowerCase().includes(search.toLowerCase())
+      m.providerModelId.toLowerCase().includes(search.toLowerCase()) ||
+      m.category.toLowerCase().includes(search.toLowerCase())
   );
 
-  const meta = categoryMeta[selectedModel.category] || categoryMeta.fast;
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'fast':
+        return <Zap className="w-3.5 h-3.5 text-sky-400" />;
+      case 'reasoning':
+        return <Brain className="w-3.5 h-3.5 text-purple-400" />;
+      case 'budget':
+        return <PiggyBank className="w-3.5 h-3.5 text-emerald-400" />;
+      case 'vision':
+        return <Eye className="w-3.5 h-3.5 text-amber-400" />;
+      default:
+        return <Zap className="w-3.5 h-3.5 text-sky-400" />;
+    }
+  };
 
   return (
-    <div ref={containerRef} style={{ position: 'relative' }}>
+    <div ref={containerRef} className="relative w-full max-w-sm">
       <button
         type="button"
-        onClick={() => setIsOpen((v) => !v)}
+        onClick={() => setIsOpen((prev) => !prev)}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-          padding: '8px 12px',
-          background: 'rgba(255,255,255,0.04)',
-          border: '1px solid rgba(255,255,255,0.09)',
-          borderRadius: 10,
-          cursor: 'pointer',
-          transition: 'all 0.15s',
-          minWidth: 240,
-          width: '100%',
-        }}
+        className="w-full flex items-center justify-between gap-3 px-3.5 py-2 rounded-xl bg-slate-900/90 hover:bg-slate-800/90 border border-white/[0.08] hover:border-white/[0.16] transition-all shadow-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
       >
-        {/* Category icon */}
-        <span style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: 28,
-          height: 28,
-          borderRadius: 7,
-          background: meta.bg,
-          color: meta.color,
-          flexShrink: 0,
-        }}>
-          {meta.icon}
-        </span>
-
-        <span style={{ flex: 1, textAlign: 'left', minWidth: 0 }}>
-          <span style={{
-            display: 'block',
-            fontSize: 13,
-            fontWeight: 600,
-            color: '#f0f0f4',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}>
-            {selectedModel.name}
-          </span>
-          <span style={{
-            display: 'block',
-            fontSize: 11,
-            color: '#9898a8',
-            fontFamily: 'monospace',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}>
-            {selectedModel.providerModelId}
-          </span>
-        </span>
-
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center flex-shrink-0 border border-white/[0.06]">
+            {getCategoryIcon(selectedModel.category)}
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-xs text-white truncate">
+                {selectedModel.name}
+              </span>
+              <span className="text-[10px] uppercase font-mono px-1 py-0.2 rounded bg-slate-800 text-slate-400 border border-white/[0.06]">
+                {selectedModel.provider}
+              </span>
+            </div>
+            <div className="text-[11px] font-mono text-slate-400 truncate">
+              {selectedModel.providerModelId}
+            </div>
+          </div>
+        </div>
         <ChevronDown
-          style={{
-            width: 14,
-            height: 14,
-            color: '#606070',
-            flexShrink: 0,
-            transform: isOpen ? 'rotate(180deg)' : 'rotate(0)',
-            transition: 'transform 0.2s',
-          }}
+          className={`w-4 h-4 text-slate-400 flex-shrink-0 transition-transform duration-200 ${
+            isOpen ? 'rotate-180' : ''
+          }`}
         />
       </button>
 
+      {/* Dropdown Menu */}
       {isOpen && (
         <div
           role="listbox"
-          aria-label="Select AI Model"
-          style={{
-            position: 'absolute',
-            top: 'calc(100% + 6px)',
-            left: 0,
-            width: '100%',
-            minWidth: 320,
-            maxWidth: 440,
-            maxHeight: 420,
-            overflowY: 'auto',
-            background: '#16161f',
-            border: '1px solid rgba(255,255,255,0.10)',
-            borderRadius: 12,
-            boxShadow: '0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05)',
-            zIndex: 100,
-            padding: '6px',
-          }}
+          aria-label="Available models"
+          className="absolute left-0 top-full mt-2 w-full min-w-[320px] max-w-[420px] max-h-96 overflow-y-auto rounded-2xl bg-slate-900 border border-white/[0.12] shadow-2xl p-2 z-50 flex flex-col gap-1 backdrop-blur-xl"
         >
-          {/* Search */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '7px 10px',
-            margin: '0 0 4px 0',
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 8,
-          }}>
-            <Search style={{ width: 13, height: 13, color: '#606070', flexShrink: 0 }} />
+          {/* Search box */}
+          <div className="flex items-center gap-2 px-3 py-2 bg-slate-800/60 rounded-xl border border-white/[0.06] mb-1">
+            <Search className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
             <input
-              ref={searchRef}
+              ref={searchInputRef}
               type="text"
-              placeholder="Search models…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              style={{
-                flex: 1,
-                background: 'none',
-                border: 'none',
-                outline: 'none',
-                fontSize: 12,
-                color: '#f0f0f4',
-              }}
+              placeholder="Search models..."
+              className="w-full bg-transparent border-none text-xs text-white placeholder-slate-500 focus:outline-none"
             />
           </div>
 
-          {/* Model list */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {filtered.map((model) => {
-              const isSelected = model.id === selectedModel.id;
-              const m = categoryMeta[model.category] || categoryMeta.fast;
+          {/* Model options */}
+          <div className="flex flex-col gap-1">
+            {filtered.map((m) => {
+              const isSelected = m.id === selectedModel.id;
               return (
                 <div
-                  key={model.id}
+                  key={m.id}
                   role="option"
                   aria-selected={isSelected}
-                  onClick={() => { onSelectModel(model); setIsOpen(false); setSearch(''); }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: 10,
-                    padding: '10px 10px',
-                    borderRadius: 8,
-                    cursor: 'pointer',
-                    background: isSelected ? 'rgba(79,142,247,0.08)' : 'transparent',
-                    border: `1px solid ${isSelected ? 'rgba(79,142,247,0.2)' : 'transparent'}`,
-                    transition: 'all 0.12s',
+                  onClick={() => {
+                    onSelectModel(m);
+                    setIsOpen(false);
+                    setSearch('');
                   }}
-                  onMouseEnter={(e) => {
-                    if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.04)';
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'transparent';
-                  }}
+                  className={`flex flex-col gap-1.5 p-2.5 rounded-xl cursor-pointer transition-colors border ${
+                    isSelected
+                      ? 'bg-sky-500/10 border-sky-500/30 text-white'
+                      : 'hover:bg-slate-800/70 border-transparent text-slate-300'
+                  }`}
                 >
-                  <span style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    width: 28, height: 28, borderRadius: 7,
-                    background: m.bg, color: m.color, flexShrink: 0, marginTop: 1,
-                  }}>
-                    {m.icon}
-                  </span>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-6 h-6 rounded-md bg-slate-800 flex items-center justify-center flex-shrink-0">
+                        {getCategoryIcon(m.category)}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-semibold text-xs text-white truncate">
+                            {m.name}
+                          </span>
+                          <span className="text-[9px] uppercase font-mono px-1 py-0.2 rounded bg-slate-800 text-slate-400">
+                            {m.provider}
+                          </span>
+                        </div>
+                        <div className="text-[10px] font-mono text-slate-400 truncate">
+                          {m.providerModelId}
+                        </div>
+                      </div>
+                    </div>
 
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: '#f0f0f4' }}>
-                        {model.name}
-                      </span>
-                      {model.isConfigured ? (
-                        <span style={{
-                          fontSize: 10, color: '#3ecf8e', background: 'rgba(62,207,142,0.1)',
-                          border: '1px solid rgba(62,207,142,0.2)', borderRadius: 5,
-                          padding: '1px 6px', display: 'flex', alignItems: 'center', gap: 3,
-                        }}>
-                          <ShieldCheck style={{ width: 9, height: 9 }} /> Ready
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      {m.isConfigured ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                          <ShieldCheck className="w-3 h-3" /> Ready
                         </span>
                       ) : (
-                        <span style={{
-                          fontSize: 10, color: '#f43f5e', background: 'rgba(244,63,94,0.08)',
-                          border: '1px solid rgba(244,63,94,0.2)', borderRadius: 5,
-                          padding: '1px 6px', display: 'flex', alignItems: 'center', gap: 3,
-                        }}>
-                          <AlertTriangle style={{ width: 9, height: 9 }} /> Setup
+                        <span className="inline-flex items-center gap-1 text-[10px] text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20">
+                          <AlertTriangle className="w-3 h-3" /> Setup
                         </span>
                       )}
-                      {isSelected && <Check style={{ width: 12, height: 12, color: '#4f8ef7', marginLeft: 'auto' }} />}
-                    </div>
-                    <div style={{ fontSize: 11, color: '#606070', fontFamily: 'monospace', marginBottom: 4 }}>
-                      {model.providerModelId}
-                    </div>
-                    <div style={{ fontSize: 11, color: '#9898a8', lineHeight: 1.5 }}>
-                      {model.description}
-                    </div>
-                    {/* Capability tags */}
-                    <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>
-                      {model.contextLimit && (
-                        <span style={{
-                          fontSize: 10, color: '#606070', background: 'rgba(255,255,255,0.05)',
-                          border: '1px solid rgba(255,255,255,0.08)', borderRadius: 4, padding: '1px 5px',
-                        }}>
-                          {(model.contextLimit / 1024).toFixed(0)}k ctx
-                        </span>
-                      )}
-                      {model.capabilities.supportsStreaming && (
-                        <span style={{
-                          fontSize: 10, color: '#4f8ef7', background: 'rgba(79,142,247,0.08)',
-                          border: '1px solid rgba(79,142,247,0.15)', borderRadius: 4, padding: '1px 5px',
-                        }}>
-                          Streaming
-                        </span>
-                      )}
-                      {model.capabilities.supportsVision && (
-                        <span style={{
-                          fontSize: 10, color: '#f59e0b', background: 'rgba(245,158,11,0.08)',
-                          border: '1px solid rgba(245,158,11,0.15)', borderRadius: 4, padding: '1px 5px',
-                        }}>
-                          Vision
-                        </span>
-                      )}
+                      {isSelected && <Check className="w-3.5 h-3.5 text-sky-400 ml-1" />}
                     </div>
                   </div>
+
+                  <p className="text-[11px] text-slate-400 leading-relaxed pl-8 line-clamp-2">
+                    {m.description}
+                  </p>
                 </div>
               );
             })}
+
             {filtered.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '16px 0', color: '#606070', fontSize: 12 }}>
-                No models match your search
+              <div className="p-4 text-center text-xs text-slate-500">
+                No models found matching &quot;{search}&quot;
               </div>
             )}
           </div>

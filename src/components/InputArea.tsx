@@ -2,7 +2,6 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import { Send, Square, Paperclip, ChevronDown, ChevronUp } from 'lucide-react';
-import { ChatMessage, Role } from '@/lib/providers/types';
 
 interface InputAreaProps {
   inputPrompt: string;
@@ -35,23 +34,14 @@ export const InputArea: React.FC<InputAreaProps> = ({
   const sysRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [sysOpen, setSysOpen] = useState(false);
-  const [focused, setFocused] = useState(false);
 
   // Auto-resize main textarea
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${Math.min(200, Math.max(44, textareaRef.current.scrollHeight))}px`;
+      textareaRef.current.style.height = `${Math.min(220, Math.max(48, textareaRef.current.scrollHeight))}px`;
     }
   }, [inputPrompt]);
-
-  // Auto-resize system prompt textarea
-  useEffect(() => {
-    if (sysRef.current) {
-      sysRef.current.style.height = 'auto';
-      sysRef.current.style.height = `${Math.min(160, Math.max(60, sysRef.current.scrollHeight))}px`;
-    }
-  }, [systemPrompt, sysOpen]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
@@ -71,131 +61,65 @@ export const InputArea: React.FC<InputAreaProps> = ({
   const canSend = isModelConfigured && (inputPrompt.trim().length > 0 || hasMessages);
 
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 8,
-    }}>
-      {/* System Prompt collapsible */}
-      <div style={{
-        background: 'rgba(167,139,250,0.04)',
-        border: '1px solid rgba(167,139,250,0.12)',
-        borderRadius: 10,
-        overflow: 'hidden',
-        transition: 'all 0.2s',
-      }}>
+    <div className="w-full flex flex-col gap-2">
+      {/* Collapsible System Prompt Drawer */}
+      <div className="rounded-xl border border-purple-500/20 bg-purple-950/10 overflow-hidden transition-all">
         <button
           type="button"
-          onClick={() => setSysOpen((v) => !v)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            width: '100%',
-            padding: '8px 12px',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            gap: 8,
-          }}
+          onClick={() => setSysOpen((prev) => !prev)}
+          className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-purple-950/20 transition-colors"
         >
-          <span style={{ fontSize: 11, fontWeight: 600, color: '#a78bfa', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-            System Prompt
-          </span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-semibold text-purple-400 uppercase tracking-wider">
+              System Directives
+            </span>
             {systemPrompt && !sysOpen && (
-              <span style={{
-                fontSize: 10,
-                color: '#606070',
-                maxWidth: 200,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}>
-                {systemPrompt.slice(0, 60)}{systemPrompt.length > 60 ? '…' : ''}
+              <span className="text-xs text-slate-400 max-w-[280px] sm:max-w-md truncate">
+                {systemPrompt}
               </span>
             )}
-            {sysOpen
-              ? <ChevronUp style={{ width: 13, height: 13, color: '#606070' }} />
-              : <ChevronDown style={{ width: 13, height: 13, color: '#606070' }} />}
           </div>
+          {sysOpen ? (
+            <ChevronUp className="w-4 h-4 text-purple-400 flex-shrink-0" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-purple-400 flex-shrink-0" />
+          )}
         </button>
 
         {sysOpen && (
-          <div style={{ padding: '0 12px 10px' }}>
+          <div className="p-3 pt-0">
             <textarea
               ref={sysRef}
               value={systemPrompt}
               onChange={(e) => onSystemPromptChange(e.target.value)}
-              placeholder="Set the assistant's behavior, persona, or context…"
+              placeholder="e.g. You are a senior fullstack engineer. Write concise, production-ready code with explanations."
               rows={3}
-              style={{
-                width: '100%',
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.07)',
-                borderRadius: 8,
-                padding: '8px 10px',
-                fontSize: 13,
-                color: '#f0f0f4',
-                resize: 'none',
-                outline: 'none',
-                lineHeight: 1.6,
-                fontFamily: 'inherit',
-                boxSizing: 'border-box',
-              }}
+              className="w-full p-2.5 rounded-lg bg-slate-900/80 border border-white/[0.08] text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-purple-500/40 resize-none font-sans leading-relaxed"
             />
           </div>
         )}
       </div>
 
-      {/* Main input box */}
-      <div style={{
-        background: '#16161f',
-        border: `1px solid ${focused ? 'rgba(79,142,247,0.35)' : 'rgba(255,255,255,0.09)'}`,
-        borderRadius: 12,
-        padding: '12px 14px 10px',
-        transition: 'border-color 0.15s',
-        boxShadow: focused ? '0 0 0 3px rgba(79,142,247,0.08)' : 'none',
-      }}>
+      {/* Main Composer Box */}
+      <div className="rounded-2xl border border-white/[0.10] bg-slate-900/90 focus-within:border-sky-500/50 p-3 transition-colors shadow-lg">
         <textarea
           ref={textareaRef}
           value={inputPrompt}
           onChange={(e) => onInputChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          placeholder={isModelConfigured
-            ? "Message… (⌘+Enter to send)"
-            : "Configure an API key in .env.local to start chatting"}
+          placeholder={
+            isModelConfigured
+              ? "Ask a question or enter a prompt... (Press ⌘+Enter to send)"
+              : "Model is not configured. Add your API key in .env.local to begin."
+          }
           disabled={!isModelConfigured}
           rows={1}
-          style={{
-            width: '100%',
-            background: 'none',
-            border: 'none',
-            outline: 'none',
-            resize: 'none',
-            fontSize: 14,
-            color: '#f0f0f4',
-            lineHeight: 1.65,
-            fontFamily: 'inherit',
-            maxHeight: 200,
-            minHeight: 44,
-            overflowY: 'auto',
-          }}
+          className="w-full bg-transparent border-none text-sm text-slate-100 placeholder-slate-500 focus:outline-none resize-none leading-relaxed min-h-[48px] max-h-56 pr-2"
         />
 
-        {/* Bottom action row */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginTop: 8,
-          paddingTop: 8,
-          borderTop: '1px solid rgba(255,255,255,0.05)',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            {/* Attach image (vision models) */}
+        {/* Toolbar & Controls */}
+        <div className="flex items-center justify-between pt-2 border-t border-white/[0.06] mt-1">
+          <div className="flex items-center gap-2">
             {supportsVision && onAttachImage && (
               <>
                 <input
@@ -203,71 +127,50 @@ export const InputArea: React.FC<InputAreaProps> = ({
                   ref={fileInputRef}
                   accept="image/*"
                   onChange={handleFileChange}
-                  style={{ display: 'none' }}
+                  className="hidden"
                 />
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   title="Attach image"
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    width: 30, height: 30, borderRadius: 7, cursor: 'pointer',
-                    background: 'none', border: '1px solid rgba(255,255,255,0.07)',
-                    color: '#606070', transition: 'all 0.15s',
-                  }}
+                  className="p-1.5 text-slate-400 hover:text-amber-400 rounded-lg hover:bg-slate-800 transition-colors"
                 >
-                  <Paperclip style={{ width: 13, height: 13 }} />
+                  <Paperclip className="w-4 h-4" />
                 </button>
               </>
             )}
 
-            <span style={{ fontSize: 11, color: '#606070' }}>
-              {inputPrompt.length > 0 ? `${inputPrompt.length} chars` : ''}
+            <span className="text-[11px] text-slate-500 font-mono hidden sm:inline">
+              ⌘+Enter to submit
             </span>
           </div>
 
-          {/* Send / Stop */}
-          {isStreaming ? (
-            <button
-              type="button"
-              onClick={onStop}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '7px 14px',
-                background: 'rgba(244,63,94,0.12)',
-                border: '1px solid rgba(244,63,94,0.25)',
-                borderRadius: 8, cursor: 'pointer',
-                fontSize: 13, fontWeight: 600, color: '#f43f5e',
-                transition: 'all 0.15s',
-              }}
-            >
-              <Square style={{ width: 12, height: 12, fill: 'currentColor' }} />
-              Stop
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={onSubmit}
-              disabled={!canSend}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '7px 16px',
-                background: canSend
-                  ? 'linear-gradient(135deg, #4f8ef7 0%, #6366f1 100%)'
-                  : 'rgba(255,255,255,0.05)',
-                border: `1px solid ${canSend ? 'rgba(79,142,247,0.4)' : 'rgba(255,255,255,0.07)'}`,
-                borderRadius: 8,
-                cursor: canSend ? 'pointer' : 'not-allowed',
-                fontSize: 13, fontWeight: 600,
-                color: canSend ? '#fff' : '#606070',
-                transition: 'all 0.15s',
-                boxShadow: canSend ? '0 2px 12px rgba(79,142,247,0.25)' : 'none',
-              }}
-            >
-              <Send style={{ width: 13, height: 13 }} />
-              Send
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {isStreaming ? (
+              <button
+                type="button"
+                onClick={onStop}
+                className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl text-rose-300 bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 transition-all shadow-sm"
+              >
+                <Square className="w-3.5 h-3.5 fill-current" />
+                <span>Stop</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={onSubmit}
+                disabled={!canSend}
+                className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl transition-all shadow-sm ${
+                  canSend
+                    ? 'bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white shadow-sky-500/20 active:scale-[0.98]'
+                    : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-white/[0.04]'
+                }`}
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>Send</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

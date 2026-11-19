@@ -10,7 +10,7 @@ import { CodeModal } from '@/components/CodeModal';
 import { ConversationsSidebar } from '@/components/ConversationsSidebar';
 import { ClientModelInfo } from '@/config/models';
 import { ChatMessage, GenerationSettings, RequestMetrics } from '@/lib/providers/types';
-import { SavedConversation, UserPreferences } from '@/types';
+import { SavedConversation } from '@/types';
 import {
   getSavedConversations,
   saveConversations,
@@ -18,26 +18,32 @@ import {
   saveUserPreferences,
   DEFAULT_SETTINGS,
 } from '@/lib/storage';
-import { Sparkles, MessageSquare, Zap, Brain, PiggyBank } from 'lucide-react';
+import { Sparkles, MessageSquare, Zap, Brain, Terminal, Trash2 } from 'lucide-react';
 
 const FALLBACK_MODELS: ClientModelInfo[] = [
   {
     id: 'fast-model',
     slot: 1,
-    name: 'Fast Model',
+    name: 'Fast Model (Low Latency)',
     category: 'fast',
     provider: 'groq',
     providerModelId: 'openai/gpt-oss-20b',
-    description: 'Ultra-low latency, high throughput.',
+    description: 'Engineered for low latency and high throughput.',
     contextLimit: 131072,
     maxOutputTokensDefault: 2048,
     maxOutputTokensLimit: 8192,
     temperatureDefault: 0.7,
-    capabilities: { supportsStreaming: true, supportsVision: false, supportsTemperature: true, supportsTopP: true, supportsMaxTokens: true },
+    capabilities: {
+      supportsStreaming: true,
+      supportsVision: false,
+      supportsTemperature: true,
+      supportsTopP: true,
+      supportsMaxTokens: true,
+    },
     requiredEnvVar: 'GROQ_API_KEY',
-    setupHint: 'Add GROQ_API_KEY to .env.local',
+    setupHint: 'Add GROQ_API_KEY in .env.local to activate.',
     isConfigured: true,
-    isMockFallback: true,
+    isMockFallback: false,
   },
 ];
 
@@ -64,7 +70,7 @@ export default function PlaygroundPage() {
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Load data on mount
+  // Load initial preferences & fetch models
   useEffect(() => {
     async function loadData() {
       const prefs = getUserPreferences();
@@ -93,13 +99,13 @@ export default function PlaygroundPage() {
           }
         }
       } catch (err) {
-        console.error('Failed to load models', err);
+        console.error('Failed to load models:', err);
       }
     }
     loadData();
   }, []);
 
-  // Persist preferences
+  // Save preferences
   useEffect(() => {
     saveUserPreferences({
       selectedModelId: selectedModel.id,
@@ -113,8 +119,8 @@ export default function PlaygroundPage() {
   const autoSave = useCallback((msgs: ChatMessage[]) => {
     if (msgs.length === 0) return;
     const firstUser = msgs.find((m) => m.role === 'user');
-    const snippet = firstUser?.content.trim().slice(0, 40) || 'New Conversation';
-    const title = snippet.length >= 40 ? `${snippet}…` : snippet;
+    const snippet = firstUser?.content.trim().slice(0, 36) || 'Playground Session';
+    const title = snippet.length >= 36 ? `${snippet}...` : snippet;
     const now = Date.now();
 
     setSavedConversations((prev) => {
@@ -145,14 +151,14 @@ export default function PlaygroundPage() {
     setActiveConversationId(null);
   };
 
-  const handleCopyMessage = async (content: string, id?: string) => {
+  const handleCopyMessage = async (content: string, id: string) => {
     try {
       await navigator.clipboard.writeText(content);
-      if (id) {
-        setCopiedId(id);
-        setTimeout(() => setCopiedId(null), 2000);
-      }
-    } catch {}
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy message:', err);
+    }
   };
 
   const handleExecute = async (messagesToRun: ChatMessage[]) => {
@@ -166,7 +172,6 @@ export default function PlaygroundPage() {
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    // Build messages with optional system prompt
     const allMessages: ChatMessage[] = systemPrompt.trim()
       ? [
           { id: 'sys-prompt', role: 'system', content: systemPrompt.trim() },
@@ -183,7 +188,7 @@ export default function PlaygroundPage() {
       });
 
       if (!res.ok) {
-        let errText = `Error ${res.status}: ${res.statusText}`;
+        let errText = `Server returned status ${res.status} (${res.statusText})`;
         try {
           const j = await res.json();
           if (j.error) errText = j.error;
@@ -194,7 +199,7 @@ export default function PlaygroundPage() {
       }
 
       const reader = res.body?.getReader();
-      if (!reader) throw new Error('No response stream');
+      if (!reader) throw new Error('Response body unavailable.');
 
       const decoder = new TextDecoder();
       let buffer = '';
@@ -216,7 +221,7 @@ export default function PlaygroundPage() {
               const payload = JSON.parse(trimmed.slice(6));
               if (payload.text !== undefined) {
                 accumulated += payload.text;
-                setStreamingResponse((p) => p + payload.text);
+                setStreamingResponse((prev) => prev + payload.text);
               }
               if (payload.metrics) setMetrics(payload.metrics);
               if (payload.error) setErrorMessage(payload.error);
@@ -238,7 +243,7 @@ export default function PlaygroundPage() {
       }
     } catch (err: unknown) {
       if (controller.signal.aborted) return;
-      setErrorMessage(err instanceof Error ? err.message : 'Unknown error');
+      setErrorMessage(err instanceof Error ? err.message : 'Unknown generation failure.');
     } finally {
       setIsStreaming(false);
       abortControllerRef.current = null;
@@ -290,7 +295,7 @@ export default function PlaygroundPage() {
     setIsSidebarOpen(false);
   };
 
-  // Keyboard shortcut: Escape stops generation
+  // Keyboard shortcut: Escape stops active generation
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isStreaming) handleStop();
@@ -303,28 +308,21 @@ export default function PlaygroundPage() {
   const isEmpty = chatMessages.length === 0 && !isStreaming && !errorMessage;
 
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100dvh',
-      background: '#0a0a0f',
-      color: '#f0f0f4',
-      overflow: 'hidden',
-    }}>
-      {/* Top nav */}
+    <div className="flex flex-col h-screen max-h-screen bg-[#0b0f19] text-slate-100 overflow-hidden font-sans">
+      {/* Header */}
       <Header
         selectedModel={selectedModel}
         isSidebarOpen={isSidebarOpen}
-        onToggleSidebar={() => setIsSidebarOpen((v) => !v)}
+        onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
         isSettingsOpen={isSettingsOpen}
-        onToggleSettings={() => setIsSettingsOpen((v) => !v)}
+        onToggleSettings={() => setIsSettingsOpen((prev) => !prev)}
         onOpenCodeModal={() => setIsCodeModalOpen(true)}
         onReturnToMain={handleClear}
       />
 
-      {/* Body */}
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative' }}>
-        {/* Left sidebar */}
+      {/* Main Workspace */}
+      <div className="flex-1 flex overflow-hidden min-h-0 relative">
+        {/* Left History Sidebar */}
         <ConversationsSidebar
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
@@ -349,129 +347,91 @@ export default function PlaygroundPage() {
           }}
         />
 
-        {/* Main chat column */}
-        <main style={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          minWidth: 0,
-        }}>
-          {/* Model selector bar */}
-          <div style={{
-            padding: '10px 16px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            background: 'rgba(10,10,15,0.8)',
-            backdropFilter: 'blur(8px)',
-            flexShrink: 0,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}>
-            <div style={{ maxWidth: 360, flex: 1 }}>
-              <ModelSelector
-                models={models}
-                selectedModel={selectedModel}
-                onSelectModel={(m) => {
-                  setSelectedModel(m);
-                  setSettings((prev) => ({
-                    ...prev,
-                    temperature: m.temperatureDefault ?? prev.temperature,
-                    maxTokens: m.maxOutputTokensDefault ?? prev.maxTokens,
-                  }));
-                }}
-              />
-            </div>
+        {/* Center Stage: Chat stream & input */}
+        <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden relative">
+          {/* Model selection toolbar */}
+          <div className="flex-shrink-0 px-4 sm:px-6 py-2.5 border-b border-white/[0.08] bg-[#0b0f19]/80 backdrop-blur-sm z-10 flex items-center justify-between gap-3">
+            <ModelSelector
+              models={models}
+              selectedModel={selectedModel}
+              onSelectModel={(m) => {
+                setSelectedModel(m);
+                setSettings((prev) => ({
+                  ...prev,
+                  temperature: m.temperatureDefault ?? prev.temperature,
+                  maxTokens: m.maxOutputTokensDefault ?? prev.maxTokens,
+                }));
+              }}
+            />
+
             {messages.length > 0 && (
               <button
                 type="button"
                 onClick={handleClear}
-                style={{
-                  fontSize: 12, color: '#606070',
-                  background: 'none', border: '1px solid rgba(255,255,255,0.07)',
-                  borderRadius: 7, padding: '5px 10px',
-                  cursor: 'pointer', transition: 'color 0.15s',
-                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-400 hover:text-white bg-slate-800/60 hover:bg-slate-800 border border-white/[0.08] rounded-lg transition-colors"
+                title="Clear conversation"
               >
-                Clear
+                <Trash2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Clear</span>
               </button>
             )}
           </div>
 
-          {/* Chat area */}
-          <div style={{
-            flex: 1,
-            overflowY: 'auto',
-            padding: '0 16px',
-          }}>
-            <div style={{ maxWidth: 740, margin: '0 auto' }}>
+          {/* Chat Messages Area */}
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 min-h-0">
+            <div className="max-w-3xl mx-auto">
               {isEmpty ? (
                 /* Empty state */
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  minHeight: 'calc(100vh - 240px)',
-                  textAlign: 'center',
-                  padding: '40px 0',
-                }}>
-                  <div style={{
-                    width: 52, height: 52, borderRadius: 14,
-                    background: 'linear-gradient(135deg, rgba(79,142,247,0.2) 0%, rgba(167,139,250,0.2) 100%)',
-                    border: '1px solid rgba(79,142,247,0.2)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    marginBottom: 16,
-                  }}>
-                    <Sparkles style={{ width: 22, height: 22, color: '#4f8ef7' }} />
+                <div className="flex flex-col items-center justify-center min-h-[60vh] text-center py-10">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-sky-500/20 via-indigo-500/20 to-emerald-500/20 border border-sky-500/30 flex items-center justify-center mb-4 shadow-lg shadow-sky-500/10">
+                    <Sparkles className="w-6 h-6 text-sky-400" />
                   </div>
-                  <h1 style={{ fontSize: 20, fontWeight: 700, color: '#f0f0f4', marginBottom: 8, letterSpacing: '-0.02em' }}>
-                    Aether<span style={{ color: '#4f8ef7' }}>Studio</span>
+                  <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight mb-2">
+                    Aether<span className="text-sky-400">Studio</span> Playground
                   </h1>
-                  <p style={{ fontSize: 14, color: '#606070', maxWidth: 340, lineHeight: 1.7, marginBottom: 32 }}>
-                    Chat with AI models. Adjust settings, stream responses, and save your conversations.
+                  <p className="text-xs sm:text-sm text-slate-400 max-w-md leading-relaxed mb-8">
+                    High-speed multi-model AI workspace. Select a model, configure parameters, and stream responses with real-time latency metrics.
                   </p>
 
-                  {/* Quick start cards */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10, width: '100%', maxWidth: 600 }}>
+                  {/* Starter Prompts */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-xl text-left">
                     {[
-                      { icon: <Zap style={{ width: 14, height: 14 }} />, color: '#4f8ef7', label: 'Quick question', prompt: 'Explain quantum entanglement in simple terms.' },
-                      { icon: <Brain style={{ width: 14, height: 14 }} />, color: '#a78bfa', label: 'Code help', prompt: 'Write a TypeScript function to debounce async operations.' },
-                      { icon: <PiggyBank style={{ width: 14, height: 14 }} />, color: '#3ecf8e', label: 'Summarize', prompt: 'Summarize the key benefits of transformer architecture in AI.' },
-                      { icon: <MessageSquare style={{ width: 14, height: 14 }} />, color: '#f59e0b', label: 'Creative', prompt: 'Write a short story about an AI that learns to dream.' },
-                    ].map(({ icon, color, label, prompt }) => (
+                      {
+                        icon: <Zap className="w-4 h-4 text-sky-400" />,
+                        title: 'Fast Query',
+                        prompt: 'Explain how token streaming works over Server-Sent Events.',
+                      },
+                      {
+                        icon: <Brain className="w-4 h-4 text-purple-400" />,
+                        title: 'Coding Task',
+                        prompt: 'Write a clean TypeScript debounce hook with cancellation.',
+                      },
+                      {
+                        icon: <Terminal className="w-4 h-4 text-emerald-400" />,
+                        title: 'SQL Architecture',
+                        prompt: 'Design an indexing strategy for a high-write time series database.',
+                      },
+                      {
+                        icon: <MessageSquare className="w-4 h-4 text-amber-400" />,
+                        title: 'Logical Deduction',
+                        prompt: 'Why did MS Dhoni retire from Test and international cricket?',
+                      },
+                    ].map((card) => (
                       <button
-                        key={label}
+                        key={card.title}
                         type="button"
-                        onClick={() => { setInputPrompt(prompt); }}
-                        style={{
-                          padding: '12px 14px',
-                          background: 'rgba(255,255,255,0.03)',
-                          border: '1px solid rgba(255,255,255,0.07)',
-                          borderRadius: 10,
-                          cursor: 'pointer',
-                          textAlign: 'left',
-                          transition: 'all 0.15s',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: 6,
-                        }}
-                        onMouseEnter={(e) => {
-                          (e.currentTarget as HTMLElement).style.borderColor = `${color}40`;
-                          (e.currentTarget as HTMLElement).style.background = `${color}08`;
-                        }}
-                        onMouseLeave={(e) => {
-                          (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.07)';
-                          (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)';
-                        }}
+                        onClick={() => setInputPrompt(card.prompt)}
+                        className="group p-3.5 rounded-xl border border-white/[0.08] bg-slate-900/60 hover:bg-slate-800/80 hover:border-sky-500/30 transition-all text-left"
                       >
-                        <span style={{ color, display: 'flex', alignItems: 'center', gap: 5 }}>
-                          {icon}
-                          <span style={{ fontSize: 12, fontWeight: 600, color: '#9898a8' }}>{label}</span>
-                        </span>
-                        <span style={{ fontSize: 11, color: '#606070', lineHeight: 1.5 }}>
-                          {prompt.slice(0, 55)}…
-                        </span>
+                        <div className="flex items-center gap-2 mb-1">
+                          {card.icon}
+                          <span className="text-xs font-semibold text-slate-200">
+                            {card.title}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">
+                          {card.prompt}
+                        </p>
                       </button>
                     ))}
                   </div>
@@ -485,24 +445,16 @@ export default function PlaygroundPage() {
                   metrics={metrics}
                   modelName={selectedModel.name}
                   onRetry={handleRetry}
-                  onCopyMessage={(content) => {
-                    // Find matching message id
-                    const msg = messages.find((m) => m.content === content);
-                    handleCopyMessage(content, msg?.id);
-                  }}
+                  onCopyMessage={handleCopyMessage}
                   copiedId={copiedId}
                 />
               )}
             </div>
           </div>
 
-          {/* Input area */}
-          <div style={{
-            padding: '12px 16px 16px',
-            background: 'linear-gradient(to top, #0a0a0f 80%, transparent)',
-            flexShrink: 0,
-          }}>
-            <div style={{ maxWidth: 740, margin: '0 auto' }}>
+          {/* Bottom Prompt Composer */}
+          <div className="flex-shrink-0 px-4 sm:px-6 pb-4 pt-2 bg-gradient-to-t from-[#0b0f19] via-[#0b0f19]/95 to-transparent z-10">
+            <div className="max-w-3xl mx-auto">
               <InputArea
                 inputPrompt={inputPrompt}
                 onInputChange={setInputPrompt}
@@ -519,30 +471,17 @@ export default function PlaygroundPage() {
           </div>
         </main>
 
-        {/* Right settings panel */}
-        {isSettingsOpen && (
-          <div style={{ display: 'flex' }} className="hidden lg:flex">
-            <SettingsPanel
-              settings={settings}
-              onUpdateSettings={(s) => setSettings((prev) => ({ ...prev, ...s }))}
-              selectedModel={selectedModel}
-              isOpen={isSettingsOpen}
-              onClose={() => setIsSettingsOpen(false)}
-            />
-          </div>
-        )}
-        {/* Mobile settings */}
-        <div className="lg:hidden">
-          <SettingsPanel
-            settings={settings}
-            onUpdateSettings={(s) => setSettings((prev) => ({ ...prev, ...s }))}
-            selectedModel={selectedModel}
-            isOpen={isSettingsOpen}
-            onClose={() => setIsSettingsOpen(false)}
-          />
-        </div>
+        {/* Right Parameters Sidebar */}
+        <SettingsPanel
+          settings={settings}
+          onUpdateSettings={(s) => setSettings((prev) => ({ ...prev, ...s }))}
+          selectedModel={selectedModel}
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+        />
       </div>
 
+      {/* Code Export Modal */}
       <CodeModal
         isOpen={isCodeModalOpen}
         onClose={() => setIsCodeModalOpen(false)}
